@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
 
   sockudo:
-    image: ghcr.io/sockudo/sockudo:${SOCKUDO_VERSION:-latest}
+    image: ghcr.io/sockudo/sockudo:${SOCKUDO_VERSION:-4.6.0}
     command: sockudo --config /app/config/config.toml
     env_file:
       - path: ../config/sockudo/.env
@@ -32,21 +32,43 @@ services:
       METRICS_HOST: 0.0.0.0
       METRICS_PORT: 9601
       REDIS_URL: ${REDIS_URL:-redis://:change-me@redis:6379/0}
-      SOCKUDO_DEFAULT_APP_ID: ${SOCKUDO_DEFAULT_APP_ID:-app-id}
-      SOCKUDO_DEFAULT_APP_KEY: ${SOCKUDO_DEFAULT_APP_KEY:-app-key}
-      SOCKUDO_DEFAULT_APP_SECRET: ${SOCKUDO_DEFAULT_APP_SECRET:-app-secret}
-      SOCKUDO_DEFAULT_APP_ENABLED: "true"
-      SOCKUDO_DEFAULT_APP_ENABLE_CLIENT_MESSAGES: ${SOCKUDO_DEFAULT_APP_ENABLE_CLIENT_MESSAGES:-false}
+      APP_MANAGER_DRIVER: pgsql
+      DATABASE_POSTGRES_HOST: postgres
+      DATABASE_POSTGRES_PORT: 5432
+      DATABASE_POSTGRES_USERNAME: ${POSTGRES_USER:-sockudo}
+      DATABASE_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      DATABASE_POSTGRES_DATABASE: ${POSTGRES_DB:-sockudo}
+      DATABASE_POSTGRES_POOL_MIN: ${DATABASE_POSTGRES_POOL_MIN:-2}
+      DATABASE_POSTGRES_POOL_MAX: ${DATABASE_POSTGRES_POOL_MAX:-10}
+      SOCKUDO_SKIP_INLINE_APPS: "true"
     volumes:
       - ../config/sockudo/config.toml:/app/config/config.toml:ro
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     labels:
       - traefik.enable=true
       - traefik.http.routers.sockudo.rule=Host(`localhost`) || Host(`127.0.0.1`)
       - traefik.http.routers.sockudo.entrypoints=sockudo
       - traefik.http.services.sockudo.loadbalancer.server.port=6001
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    env_file:
+      - path: ../config/postgres/.env
+        required: false
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped
 
   redis:
@@ -69,3 +91,4 @@ services:
 
 volumes:
   redis-data:
+  postgres-data:

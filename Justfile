@@ -1,4 +1,4 @@
-compose := "docker compose --env-file config/sockudo/.env --env-file config/redis/.env -f docker/docker-compose.yml"
+compose := "docker compose --env-file config/sockudo/.env --env-file config/redis/.env --env-file config/postgres/.env -f docker/docker-compose.yml"
 
 up:
 	{{compose}} up -d
