@@ -8,9 +8,11 @@ services:
       - --providers.docker.exposedbydefault=false
       - --entrypoints.sockudo.address=:6001
       - --entrypoints.dashboard.address=:5174
+      - --entrypoints.dashboard-api.address=:3460
     ports:
       - "${SOCKUDO_PORT:?SOCKUDO_PORT is required}:6001"
       - "${DASHBOARD_WEB_PORT:?DASHBOARD_WEB_PORT is required}:5174"
+      - "${DASHBOARD_API_PORT:?DASHBOARD_API_PORT is required}:3460"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
@@ -101,6 +103,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 45s
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard-api.rule=Host(`localhost`) || Host(`127.0.0.1`)
+      - traefik.http.routers.dashboard-api.entrypoints=dashboard-api
+      - traefik.http.services.dashboard-api.loadbalancer.server.port=${DASHBOARD_API_PORT:?DASHBOARD_API_PORT is required}
     restart: unless-stopped
 
   dashboard-web:
