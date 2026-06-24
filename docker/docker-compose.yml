@@ -36,14 +36,15 @@ services:
       METRICS_HOST: 0.0.0.0
       METRICS_PORT: ${SOCKUDO_METRICS_PORT:?SOCKUDO_METRICS_PORT is required}
       REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
-      APP_MANAGER_DRIVER: pgsql
-      DATABASE_POSTGRES_HOST: postgres
-      DATABASE_POSTGRES_PORT: 5432
-      DATABASE_POSTGRES_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
-      DATABASE_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      DATABASE_POSTGRES_DATABASE: ${POSTGRES_DB:?POSTGRES_DB is required}
-      DATABASE_POSTGRES_POOL_MIN: ${DATABASE_POSTGRES_POOL_MIN:?DATABASE_POSTGRES_POOL_MIN is required}
-      DATABASE_POSTGRES_POOL_MAX: ${DATABASE_POSTGRES_POOL_MAX:?DATABASE_POSTGRES_POOL_MAX is required}
+      APP_MANAGER_DRIVER: mysql
+      DATABASE_MYSQL_HOST: ${SOCKUDO_DATABASE_MYSQL_HOST:?SOCKUDO_DATABASE_MYSQL_HOST is required}
+      DATABASE_MYSQL_PORT: ${SOCKUDO_DATABASE_MYSQL_PORT:?SOCKUDO_DATABASE_MYSQL_PORT is required}
+      DATABASE_MYSQL_USERNAME: ${SOCKUDO_DATABASE_MYSQL_USERNAME:?SOCKUDO_DATABASE_MYSQL_USERNAME is required}
+      DATABASE_MYSQL_PASSWORD: ${SOCKUDO_DATABASE_MYSQL_PASSWORD:?SOCKUDO_DATABASE_MYSQL_PASSWORD is required}
+      DATABASE_MYSQL_DATABASE: ${SOCKUDO_DATABASE_MYSQL_DATABASE:?SOCKUDO_DATABASE_MYSQL_DATABASE is required}
+      DATABASE_MYSQL_TABLE_NAME: applications
+      DATABASE_MYSQL_POOL_MIN: ${SOCKUDO_DATABASE_MYSQL_POOL_MIN:?SOCKUDO_DATABASE_MYSQL_POOL_MIN is required}
+      DATABASE_MYSQL_POOL_MAX: ${SOCKUDO_DATABASE_MYSQL_POOL_MAX:?SOCKUDO_DATABASE_MYSQL_POOL_MAX is required}
       HTTP_API_USAGE_ENABLED: "true"
       SOCKUDO_SKIP_INLINE_APPS: "true"
     volumes:
@@ -51,7 +52,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      postgres:
+      mysql:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${SOCKUDO_METRICS_PORT:?SOCKUDO_METRICS_PORT is required}/metrics"]
@@ -81,19 +82,20 @@ services:
       DASHBOARD_SEED_EMAIL: ${DASHBOARD_SEED_EMAIL:?DASHBOARD_SEED_EMAIL is required}
       DASHBOARD_SEED_PASSWORD: ${DASHBOARD_SEED_PASSWORD:?DASHBOARD_SEED_PASSWORD is required}
       DASHBOARD_SEED_NAME: ${DASHBOARD_SEED_NAME:?DASHBOARD_SEED_NAME is required}
-      APP_MANAGER_DRIVER: pgsql
+      APP_MANAGER_DRIVER: mysql
       DASHBOARD_DATABASE_DRIVER: ${DASHBOARD_DATABASE_DRIVER:?DASHBOARD_DATABASE_DRIVER is required}
-      DATABASE_POSTGRES_HOST: ${DASHBOARD_DATABASE_POSTGRES_HOST:?DASHBOARD_DATABASE_POSTGRES_HOST is required}
-      DATABASE_POSTGRES_PORT: ${DASHBOARD_DATABASE_POSTGRES_PORT:?DASHBOARD_DATABASE_POSTGRES_PORT is required}
-      DATABASE_POSTGRES_USERNAME: ${DASHBOARD_DATABASE_POSTGRES_USERNAME:?DASHBOARD_DATABASE_POSTGRES_USERNAME is required}
-      DATABASE_POSTGRES_PASSWORD: ${DASHBOARD_DATABASE_POSTGRES_PASSWORD:?DASHBOARD_DATABASE_POSTGRES_PASSWORD is required}
-      DATABASE_POSTGRES_DATABASE: ${DASHBOARD_DATABASE_POSTGRES_DATABASE:?DASHBOARD_DATABASE_POSTGRES_DATABASE is required}
+      DATABASE_MYSQL_HOST: ${DASHBOARD_DATABASE_MYSQL_HOST:?DASHBOARD_DATABASE_MYSQL_HOST is required}
+      DATABASE_MYSQL_PORT: ${DASHBOARD_DATABASE_MYSQL_PORT:?DASHBOARD_DATABASE_MYSQL_PORT is required}
+      DATABASE_MYSQL_USERNAME: ${DASHBOARD_DATABASE_MYSQL_USERNAME:?DASHBOARD_DATABASE_MYSQL_USERNAME is required}
+      DATABASE_MYSQL_PASSWORD: ${DASHBOARD_DATABASE_MYSQL_PASSWORD:?DASHBOARD_DATABASE_MYSQL_PASSWORD is required}
+      DATABASE_MYSQL_DATABASE: ${DASHBOARD_DATABASE_MYSQL_DATABASE:?DASHBOARD_DATABASE_MYSQL_DATABASE is required}
+      DATABASE_MYSQL_TABLE_NAME: applications
       SOCKUDO_HTTP_URL: http://sockudo:6001
       SOCKUDO_METRICS_URL: http://sockudo:${SOCKUDO_METRICS_PORT:?SOCKUDO_METRICS_PORT is required}
     volumes:
       - dashboard-api-data:/app/data
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       sockudo:
         condition: service_healthy
@@ -170,20 +172,26 @@ services:
       - prometheus
     restart: unless-stopped
 
-  postgres:
-    image: postgres:17-alpine
+  mysql:
+    image: mysql:8.4
     env_file:
-      - path: ../config/postgres/.env
+      - path: ../config/mysql/.env
         required: false
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?MYSQL_DATABASE is required}
+      MYSQL_USER: ${MYSQL_USER:?MYSQL_USER is required}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
     ports:
-      - "${POSTGRES_PORT:?POSTGRES_PORT is required}:5432"
+      - "${MYSQL_PORT:?MYSQL_PORT is required}:3306"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$${MYSQL_USER}\" -p\"$${MYSQL_PASSWORD}\""]
       interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 30s
     restart: unless-stopped
 
   redis:
@@ -206,7 +214,7 @@ services:
 
 volumes:
   redis-data:
-  postgres-data:
+  mysql-data:
   dashboard-api-data:
   prometheus-data:
   grafana-data:
