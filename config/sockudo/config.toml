@@ -18,6 +18,14 @@ driver = "redis"
 enabled = true
 driver = "redis"
 
+[rate_limiter.api_rate_limit]
+max_requests = 3000
+window_seconds = 60
+
+[rate_limiter.websocket_rate_limit]
+max_requests = 1000
+window_seconds = 60
+
 [metrics]
 enabled = true
 host = "0.0.0.0"
