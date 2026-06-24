@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: sockudo
+    metrics_path: /metrics
+    dns_sd_configs:
+      - names:
+          - sockudo
+        type: A
+        port: 9601
+        refresh_interval: 15s
