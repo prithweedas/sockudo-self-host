@@ -3,7 +3,7 @@ port = 6001
 debug = false
 
 [app_manager]
-driver = "pgsql"
+driver = "mysql"
 
 [adapter]
 driver = "redis"
