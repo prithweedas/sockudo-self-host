@@ -7,8 +7,10 @@ services:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --entrypoints.sockudo.address=:6001
+      - --entrypoints.dashboard.address=:5174
     ports:
       - "${SOCKUDO_PORT:-6001}:6001"
+      - "${DASHBOARD_WEB_PORT:-5174}:5174"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
@@ -40,6 +42,7 @@ services:
       DATABASE_POSTGRES_DATABASE: ${POSTGRES_DB:-sockudo}
       DATABASE_POSTGRES_POOL_MIN: ${DATABASE_POSTGRES_POOL_MIN:-2}
       DATABASE_POSTGRES_POOL_MAX: ${DATABASE_POSTGRES_POOL_MAX:-10}
+      HTTP_API_USAGE_ENABLED: "true"
       SOCKUDO_SKIP_INLINE_APPS: "true"
     volumes:
       - ../config/sockudo/config.toml:/app/config/config.toml:ro
@@ -48,11 +51,78 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9601/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     labels:
       - traefik.enable=true
       - traefik.http.routers.sockudo.rule=Host(`localhost`) || Host(`127.0.0.1`)
       - traefik.http.routers.sockudo.entrypoints=sockudo
       - traefik.http.services.sockudo.loadbalancer.server.port=6001
+    restart: unless-stopped
+
+  dashboard-api:
+    image: sockudo-dashboard-api:4.6.0
+    env_file:
+      - path: ../config/dashboard-api/.env
+        required: false
+    expose:
+      - "3460"
+    environment:
+      NODE_ENV: production
+      DASHBOARD_API_PORT: ${DASHBOARD_API_PORT:-3460}
+      DASHBOARD_CORS_ORIGIN: ${DASHBOARD_CORS_ORIGIN:-http://localhost:5174}
+      DASHBOARD_SESSION_SECRET: ${DASHBOARD_SESSION_SECRET:-change-me-use-openssl-rand-base64-32}
+      APP_MANAGER_DRIVER: pgsql
+      DASHBOARD_DATABASE_DRIVER: ${DASHBOARD_DATABASE_DRIVER:-pgsql}
+      DATABASE_POSTGRES_HOST: ${DASHBOARD_DATABASE_POSTGRES_HOST:-postgres}
+      DATABASE_POSTGRES_PORT: ${DASHBOARD_DATABASE_POSTGRES_PORT:-5432}
+      DATABASE_POSTGRES_USERNAME: ${DASHBOARD_DATABASE_POSTGRES_USERNAME:-sockudo}
+      DATABASE_POSTGRES_PASSWORD: ${DASHBOARD_DATABASE_POSTGRES_PASSWORD:-change-me}
+      DATABASE_POSTGRES_DATABASE: ${DASHBOARD_DATABASE_POSTGRES_DATABASE:-sockudo}
+      SOCKUDO_HTTP_URL: http://sockudo:6001
+      SOCKUDO_METRICS_URL: http://sockudo:9601
+    volumes:
+      - dashboard-api-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      sockudo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3460/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    restart: unless-stopped
+
+  dashboard-web:
+    image: sockudo-dashboard-web:4.6.0
+    env_file:
+      - path: ../config/dashboard-web/.env
+        required: false
+    expose:
+      - "80"
+    environment:
+      DASHBOARD_API_UPSTREAM: ${DASHBOARD_API_UPSTREAM:-http://dashboard-api:3460}
+    depends_on:
+      dashboard-api:
+        condition: service_healthy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`localhost`) || Host(`127.0.0.1`)
+      - traefik.http.routers.dashboard.entrypoints=dashboard
+      - traefik.http.services.dashboard.loadbalancer.server.port=80
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
 
   postgres:
@@ -92,3 +162,4 @@ services:
 volumes:
   redis-data:
   postgres-data:
+  dashboard-api-data:

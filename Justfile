@@ -1,4 +1,4 @@
-compose := "docker compose --env-file config/sockudo/.env --env-file config/redis/.env --env-file config/postgres/.env -f docker/docker-compose.yml"
+compose := "docker compose --env-file config/sockudo/.env --env-file config/redis/.env --env-file config/postgres/.env --env-file config/dashboard-api/.env --env-file config/dashboard-web/.env -f docker/docker-compose.yml"
 
 up:
 	{{compose}} up -d
@@ -7,7 +7,7 @@ scale replicas="2":
 	{{compose}} up -d --scale sockudo={{replicas}}
 
 down:
-	{{compose}} down
+	{{compose}} down -v
 
 restart:
 	{{compose}} restart
