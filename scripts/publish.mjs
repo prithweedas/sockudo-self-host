@@ -7,12 +7,19 @@ config({ path: new URL('./.env.publish', import.meta.url) });
 const program = new Command();
 
 program
-  .option('-c, --channel <channel>', 'channel to publish to', process.env.CHANNEL ?? 'test-channel')
-  .option('-e, --event <event>', 'event to trigger', process.env.EVENT ?? 'test-event')
-  .option('-m, --message <message>', 'message to send', process.env.MESSAGE ?? 'hello from publisher')
+  .option('--stock-interval-ms <ms>', 'stock feed interval', process.env.STOCK_INTERVAL_MS ?? '1000')
+  .option('--clock-interval-ms <ms>', 'clock tick interval', process.env.CLOCK_INTERVAL_MS ?? '30000')
+  .option(
+    '--notification-interval-ms <ms>',
+    'notification event interval',
+    process.env.NOTIFICATION_INTERVAL_MS ?? '5000',
+  )
   .parse();
 
-const { channel: channelName, event: eventName, message } = program.opts();
+const options = program.opts();
+const stockIntervalMs = Number(options.stockIntervalMs);
+const clockIntervalMs = Number(options.clockIntervalMs);
+const notificationIntervalMs = Number(options.notificationIntervalMs);
 
 const pusher = new Pusher({
   appId: process.env.SOCKUDO_DEFAULT_APP_ID ?? 'app-id',
@@ -24,12 +31,77 @@ const pusher = new Pusher({
   cluster: 'mt1',
 });
 
-const payload = {
-  message,
-  sentAt: new Date().toISOString(),
-};
+const notificationTitles = [
+  'New message from Alice',
+  'New mention in Support Room',
+  'New deployment notification',
+  'New approval request',
+  'New incident update',
+  'New comment on your ticket',
+];
 
-await pusher.trigger(channelName, eventName, payload);
+const timers = [];
 
-console.log(`Published ${eventName} to ${channelName}:`);
-console.log(JSON.stringify(payload, null, 2));
+function randomPrice() {
+  return Number((100 + Math.random() * 400).toFixed(2));
+}
+
+function randomNotificationTitle() {
+  return notificationTitles[Math.floor(Math.random() * notificationTitles.length)];
+}
+
+async function publish(channel, event, payload) {
+  try {
+    await pusher.trigger(channel, event, payload);
+    console.log(`Published ${event} to ${channel}: ${JSON.stringify(payload)}`);
+  } catch (error) {
+    console.error(`Failed to publish ${event} to ${channel}:`, error);
+  }
+}
+
+function publishClockTick() {
+  return publish('public-clock', 'clock.tick', {
+    utcTime: new Date().toISOString(),
+    sentAt: new Date().toISOString(),
+  });
+}
+
+function publishStockPrice(symbol, channel) {
+  return publish(channel, 'stock.price.updated', {
+    symbol,
+    price: randomPrice(),
+    currency: 'USD',
+    sentAt: new Date().toISOString(),
+  });
+}
+
+function publishNotification() {
+  return publish('presence-notifications', 'notification.created', {
+    type: 'new_message',
+    title: randomNotificationTitle(),
+    sentAt: new Date().toISOString(),
+  });
+}
+
+function schedule(label, intervalMs, callback) {
+  void callback();
+  const timer = setInterval(() => {
+    void callback();
+  }, intervalMs);
+
+  timers.push(timer);
+  console.log(`Started ${label} every ${intervalMs}ms`);
+}
+
+schedule('UTC clock ticks', clockIntervalMs, publishClockTick);
+schedule('AAPL price feed', stockIntervalMs, () => publishStockPrice('AAPL', 'private-prices-aapl'));
+schedule('GOOGL price feed', stockIntervalMs, () => publishStockPrice('GOOGL', 'private-prices-googl'));
+schedule('presence notifications', notificationIntervalMs, publishNotification);
+
+process.on('SIGINT', () => {
+  console.log('\nStopping publisher...');
+  for (const timer of timers) {
+    clearInterval(timer);
+  }
+  process.exit(0);
+});
