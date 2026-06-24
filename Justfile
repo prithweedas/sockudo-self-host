@@ -1,5 +1,16 @@
 compose := "docker compose --env-file config/sockudo/.env --env-file config/redis/.env --env-file config/postgres/.env --env-file config/dashboard-api/.env --env-file config/dashboard-web/.env --env-file config/grafana/.env -f docker/docker-compose.yml"
 
+setup-env:
+	@for file in config/*/.env.example; do \
+		target="$${file%.example}"; \
+		if [ -f "$$target" ]; then \
+			echo "Skipping $$target"; \
+		else \
+			cp "$$file" "$$target"; \
+			echo "Created $$target"; \
+		fi; \
+	done
+
 up:
 	{{compose}} up -d
 	{{compose}} up -d --wait dashboard-api

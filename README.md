@@ -65,3 +65,27 @@ Or:
 ```sh
 docker images | grep sockudo-dashboard
 ```
+
+## Prepare Environment
+
+Create the local `.env` files from the checked-in examples:
+
+```sh
+just setup-env
+```
+
+Existing `.env` files are skipped. Review the values under `config/` before starting the stack.
+
+## Run The Stack With Multiple Sockudo Nodes
+
+Start the stack with the default two Sockudo replicas:
+
+```sh
+just scale
+```
+
+To run more Sockudo replicas, pass the replica count:
+
+```sh
+just scale 3
+```
