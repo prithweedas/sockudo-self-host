@@ -42,21 +42,3 @@ config:
 
 health:
   curl -f http://127.0.0.1:6001/up
-
-metrics:
-  curl -f http://127.0.0.1:9601/metrics
-
-prometheus:
-  @echo "Prometheus: http://127.0.0.1:9090"
-
-targets:
-  @echo "Sockudo targets: http://127.0.0.1:9090/targets?search=sockudo"
-
-grafana:
-  @echo "Grafana: http://127.0.0.1:3000"
-  @echo "Default login comes from config/grafana/.env"
-
-observability:
-  @echo "Prometheus: http://127.0.0.1:9090"
-  @echo "Grafana: http://127.0.0.1:3000"
-  @echo "Dashboard: Sockudo / Sockudo Overview"

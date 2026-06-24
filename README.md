@@ -68,7 +68,7 @@ docker images | grep sockudo-dashboard
 
 ## Prepare Environment
 
-Create the local `.env` files from the checked-in examples:
+Create the local `.env` files from the checked-in examples and install the helper script dependencies:
 
 ```sh
 just setup-env
