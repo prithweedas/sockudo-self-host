@@ -1,7 +1,7 @@
 compose := "docker compose --env-file config/sockudo/.env --env-file config/redis/.env --env-file config/mysql/.env --env-file config/dashboard-api/.env --env-file config/dashboard-web/.env --env-file config/grafana/.env -f docker/docker-compose.yml"
 
 setup-env:
-  @for file in config/*/.env.example; do \
+  @for file in config/*/.env.example scripts/.env.*.example; do \
     target="${file%.example}"; \
     if [ -f "$target" ]; then \
       echo "Skipping $target"; \
