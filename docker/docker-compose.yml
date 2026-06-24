@@ -1,0 +1,51 @@
+name: sockudo-docker
+
+services:
+  sockudo:
+    image: ghcr.io/sockudo/sockudo:${SOCKUDO_VERSION:-latest}
+    command: sockudo --config /app/config/config.toml
+    env_file:
+      - path: ../config/sockudo/.env
+        required: false
+    ports:
+      - "${SOCKUDO_PORT:-6001}:6001"
+      - "${SOCKUDO_METRICS_PORT:-9601}:9601"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 6001
+      METRICS_ENABLED: "true"
+      METRICS_HOST: 0.0.0.0
+      METRICS_PORT: 9601
+      REDIS_URL: ${REDIS_URL:-redis://:change-me@redis:6379/0}
+      SOCKUDO_DEFAULT_APP_ID: ${SOCKUDO_DEFAULT_APP_ID:-app-id}
+      SOCKUDO_DEFAULT_APP_KEY: ${SOCKUDO_DEFAULT_APP_KEY:-app-key}
+      SOCKUDO_DEFAULT_APP_SECRET: ${SOCKUDO_DEFAULT_APP_SECRET:-app-secret}
+      SOCKUDO_DEFAULT_APP_ENABLED: "true"
+      SOCKUDO_DEFAULT_APP_ENABLE_CLIENT_MESSAGES: ${SOCKUDO_DEFAULT_APP_ENABLE_CLIENT_MESSAGES:-false}
+    volumes:
+      - ../config/sockudo/config.toml:/app/config/config.toml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass "${REDIS_PASSWORD}"
+    env_file:
+      - path: ../config/redis/.env
+        required: false
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - ../config/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis-data:
