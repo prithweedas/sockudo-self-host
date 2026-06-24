@@ -143,3 +143,11 @@ Product metrics dashboard:
 Overview dashboard:
 
 ![Sockudo Overview dashboard](./images/grafana-2.png)
+
+## Stop The Stack
+
+Stop the stack and remove its Docker volumes:
+
+```sh
+just down
+```
