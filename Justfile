@@ -15,9 +15,15 @@ setup-env:
 up:
   {{compose}} up -d
   {{compose}} up -d --wait dashboard-api
+  just bootstrap-dashboard-app
 
 scale replicas="2":
   {{compose}} up -d --scale sockudo={{replicas}}
+  {{compose}} up -d --wait dashboard-api
+  just bootstrap-dashboard-app
+
+bootstrap-dashboard-app:
+  cd scripts && pnpm bootstrap:dashboard-app
 
 down:
   {{compose}} down -v

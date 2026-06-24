@@ -90,7 +90,24 @@ To run more Sockudo replicas, pass the replica count:
 just scale 3
 ```
 
+## View The Sockudo Dashboard
+
+Open the Sockudo dashboard:
+
+```text
+http://127.0.0.1:5174
+```
+
+Default login:
+
+```text
+DASHBOARD_SEED_EMAIL / DASHBOARD_SEED_PASSWORD
+```
+
 ## Run Demo Scripts
+
+You do not need to create the local demo app manually; `just up` and `just scale` create or update it
+through the dashboard API.
 
 Run the publisher and consumer in separate terminals:
 

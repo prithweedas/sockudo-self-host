@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "bootstrap:dashboard-app": "node bootstrap-dashboard-app.mjs",
     "consume": "node consumer.mjs",
     "publish": "node publish.mjs"
   },
