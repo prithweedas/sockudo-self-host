@@ -89,3 +89,57 @@ To run more Sockudo replicas, pass the replica count:
 ```sh
 just scale 3
 ```
+
+## Run Demo Scripts
+
+Run the publisher and consumer in separate terminals:
+
+```sh
+cd scripts
+pnpm publish
+```
+
+```sh
+cd scripts
+pnpm consume
+```
+
+Optional publisher settings:
+
+```sh
+pnpm publish -- --stock-interval-ms 500 --notification-interval-ms 2000
+```
+
+Optional consumer settings:
+
+```sh
+pnpm consume -- --user-id alice --user-name "Alice"
+```
+
+Defaults: the consumer uses `demo-user-1` and `Demo User`; the publisher uses `1000ms` stock updates, `30000ms` clock ticks, and `5000ms` notifications.
+
+## View Metrics In Grafana
+
+Open Grafana:
+
+```text
+http://127.0.0.1:3000
+```
+
+Default login:
+
+```text
+admin / change-me
+```
+
+Go to `Dashboards -> Sockudo`, then open `Sockudo Overview` or `Sockudo Product Metrics`.
+
+Run the demo scripts while Grafana is open to see metrics change.
+
+Product metrics dashboard:
+
+![Sockudo Product Metrics dashboard](./images/grafana-1.png)
+
+Overview dashboard:
+
+![Sockudo Overview dashboard](./images/grafana-2.png)
