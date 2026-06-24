@@ -1,15 +1,30 @@
 name: sockudo-docker
 
 services:
+  traefik:
+    image: traefik:v3
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.sockudo.address=:6001
+    ports:
+      - "${SOCKUDO_PORT:-6001}:6001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   sockudo:
     image: ghcr.io/sockudo/sockudo:${SOCKUDO_VERSION:-latest}
     command: sockudo --config /app/config/config.toml
     env_file:
       - path: ../config/sockudo/.env
         required: false
-    ports:
-      - "${SOCKUDO_PORT:-6001}:6001"
-      - "${SOCKUDO_METRICS_PORT:-9601}:9601"
+    expose:
+      - "6001"
+      - "9601"
     environment:
       HOST: 0.0.0.0
       PORT: 6001
@@ -27,6 +42,11 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.sockudo.rule=Host(`localhost`) || Host(`127.0.0.1`)
+      - traefik.http.routers.sockudo.entrypoints=sockudo
+      - traefik.http.services.sockudo.loadbalancer.server.port=6001
     restart: unless-stopped
 
   redis:

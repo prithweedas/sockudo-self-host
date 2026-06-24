@@ -3,6 +3,9 @@ compose := "docker compose --env-file config/sockudo/.env --env-file config/redi
 up:
 	{{compose}} up -d
 
+scale replicas="2":
+	{{compose}} up -d --scale sockudo={{replicas}}
+
 down:
 	{{compose}} down
 
@@ -20,4 +23,3 @@ config:
 
 health:
 	curl -f http://127.0.0.1:6001/up
-	curl -f http://127.0.0.1:9601/metrics
