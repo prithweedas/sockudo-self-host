@@ -1,8 +1,18 @@
 import { config } from 'dotenv';
+import { Command } from 'commander';
 import Pusher from 'pusher';
 
-config({ path: new URL('../config/sockudo/.env', import.meta.url) });
-config();
+config({ path: new URL('./.env.publish', import.meta.url) });
+
+const program = new Command();
+
+program
+  .option('-c, --channel <channel>', 'channel to publish to', process.env.CHANNEL ?? 'test-channel')
+  .option('-e, --event <event>', 'event to trigger', process.env.EVENT ?? 'test-event')
+  .option('-m, --message <message>', 'message to send', process.env.MESSAGE ?? 'hello from publisher')
+  .parse();
+
+const { channel: channelName, event: eventName, message } = program.opts();
 
 const pusher = new Pusher({
   appId: process.env.SOCKUDO_DEFAULT_APP_ID ?? 'app-id',
@@ -14,10 +24,8 @@ const pusher = new Pusher({
   cluster: 'mt1',
 });
 
-const channelName = process.env.CHANNEL ?? 'test-channel';
-const eventName = process.env.EVENT ?? 'test-event';
 const payload = {
-  message: process.env.MESSAGE ?? 'hello from publisher',
+  message,
   sentAt: new Date().toISOString(),
 };
 

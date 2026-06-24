@@ -21,9 +21,3 @@ config:
 health:
 	curl -f http://127.0.0.1:6001/up
 	curl -f http://127.0.0.1:9601/metrics
-
-consume:
-	pnpm run --dir scripts consume
-
-publish:
-	pnpm run --dir scripts publish

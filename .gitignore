@@ -1,4 +1,6 @@
 config/**/.env
 !config/**/.env.example
+scripts/.env.consumer
+scripts/.env.publish
 node_modules/
 .pnpm-store/

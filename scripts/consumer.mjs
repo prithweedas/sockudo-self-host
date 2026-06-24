@@ -1,14 +1,21 @@
 import { config } from 'dotenv';
-import {Pusher} from 'pusher-js';
+import { Command } from 'commander';
+import { Pusher } from 'pusher-js';
 
-config({ path: new URL('../config/sockudo/.env', import.meta.url) });
-config();
+config({ path: new URL('./.env.consumer', import.meta.url) });
+
+const program = new Command();
+
+program
+  .option('-c, --channel <channel>', 'channel to subscribe to', process.env.CHANNEL ?? 'test-channel')
+  .option('-e, --event <event>', 'event to listen for', process.env.EVENT ?? 'test-event')
+  .parse();
+
+const { channel: channelName, event: eventName } = program.opts();
 
 const appKey = process.env.SOCKUDO_DEFAULT_APP_KEY ?? 'app-key';
 const host = process.env.SOCKUDO_HOST ?? '127.0.0.1';
 const port = Number(process.env.SOCKUDO_PORT ?? 6001);
-const channelName = process.env.CHANNEL ?? 'test-channel';
-const eventName = process.env.EVENT ?? 'test-event';
 
 const pusher = new Pusher(appKey, {
   cluster: 'mt1',
