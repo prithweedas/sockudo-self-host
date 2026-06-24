@@ -9,8 +9,8 @@ services:
       - --entrypoints.sockudo.address=:6001
       - --entrypoints.dashboard.address=:5174
     ports:
-      - "${SOCKUDO_PORT:-6001}:6001"
-      - "${DASHBOARD_WEB_PORT:-5174}:5174"
+      - "${SOCKUDO_PORT:?SOCKUDO_PORT is required}:6001"
+      - "${DASHBOARD_WEB_PORT:?DASHBOARD_WEB_PORT is required}:5174"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
@@ -19,29 +19,29 @@ services:
     restart: unless-stopped
 
   sockudo:
-    image: ghcr.io/sockudo/sockudo:${SOCKUDO_VERSION:-4.6.0}
+    image: ghcr.io/sockudo/sockudo:${SOCKUDO_VERSION:?SOCKUDO_VERSION is required}
     command: sockudo --config /app/config/config.toml
     env_file:
       - path: ../config/sockudo/.env
         required: false
     expose:
       - "6001"
-      - "9601"
+      - "${SOCKUDO_METRICS_PORT:?SOCKUDO_METRICS_PORT is required}"
     environment:
       HOST: 0.0.0.0
       PORT: 6001
       METRICS_ENABLED: "true"
       METRICS_HOST: 0.0.0.0
-      METRICS_PORT: 9601
-      REDIS_URL: ${REDIS_URL:-redis://:change-me@redis:6379/0}
+      METRICS_PORT: ${SOCKUDO_METRICS_PORT:?SOCKUDO_METRICS_PORT is required}
+      REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
       APP_MANAGER_DRIVER: pgsql
       DATABASE_POSTGRES_HOST: postgres
       DATABASE_POSTGRES_PORT: 5432
-      DATABASE_POSTGRES_USERNAME: ${POSTGRES_USER:-sockudo}
-      DATABASE_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
-      DATABASE_POSTGRES_DATABASE: ${POSTGRES_DB:-sockudo}
-      DATABASE_POSTGRES_POOL_MIN: ${DATABASE_POSTGRES_POOL_MIN:-2}
-      DATABASE_POSTGRES_POOL_MAX: ${DATABASE_POSTGRES_POOL_MAX:-10}
+      DATABASE_POSTGRES_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
+      DATABASE_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      DATABASE_POSTGRES_DATABASE: ${POSTGRES_DB:?POSTGRES_DB is required}
+      DATABASE_POSTGRES_POOL_MIN: ${DATABASE_POSTGRES_POOL_MIN:?DATABASE_POSTGRES_POOL_MIN is required}
+      DATABASE_POSTGRES_POOL_MAX: ${DATABASE_POSTGRES_POOL_MAX:?DATABASE_POSTGRES_POOL_MAX is required}
       HTTP_API_USAGE_ENABLED: "true"
       SOCKUDO_SKIP_INLINE_APPS: "true"
     volumes:
@@ -52,7 +52,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9601/metrics"]
+      test: ["CMD", "curl", "-f", "http://localhost:${SOCKUDO_METRICS_PORT:?SOCKUDO_METRICS_PORT is required}/metrics"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -70,21 +70,24 @@ services:
       - path: ../config/dashboard-api/.env
         required: false
     expose:
-      - "3460"
+      - "${DASHBOARD_API_PORT:?DASHBOARD_API_PORT is required}"
     environment:
       NODE_ENV: production
-      DASHBOARD_API_PORT: ${DASHBOARD_API_PORT:-3460}
-      DASHBOARD_CORS_ORIGIN: ${DASHBOARD_CORS_ORIGIN:-http://localhost:5174}
-      DASHBOARD_SESSION_SECRET: ${DASHBOARD_SESSION_SECRET:-change-me-use-openssl-rand-base64-32}
+      DASHBOARD_API_PORT: ${DASHBOARD_API_PORT:?DASHBOARD_API_PORT is required}
+      DASHBOARD_CORS_ORIGIN: ${DASHBOARD_CORS_ORIGIN:?DASHBOARD_CORS_ORIGIN is required}
+      DASHBOARD_SESSION_SECRET: ${DASHBOARD_SESSION_SECRET:?DASHBOARD_SESSION_SECRET is required}
+      DASHBOARD_SEED_EMAIL: ${DASHBOARD_SEED_EMAIL:?DASHBOARD_SEED_EMAIL is required}
+      DASHBOARD_SEED_PASSWORD: ${DASHBOARD_SEED_PASSWORD:?DASHBOARD_SEED_PASSWORD is required}
+      DASHBOARD_SEED_NAME: ${DASHBOARD_SEED_NAME:?DASHBOARD_SEED_NAME is required}
       APP_MANAGER_DRIVER: pgsql
-      DASHBOARD_DATABASE_DRIVER: ${DASHBOARD_DATABASE_DRIVER:-pgsql}
-      DATABASE_POSTGRES_HOST: ${DASHBOARD_DATABASE_POSTGRES_HOST:-postgres}
-      DATABASE_POSTGRES_PORT: ${DASHBOARD_DATABASE_POSTGRES_PORT:-5432}
-      DATABASE_POSTGRES_USERNAME: ${DASHBOARD_DATABASE_POSTGRES_USERNAME:-sockudo}
-      DATABASE_POSTGRES_PASSWORD: ${DASHBOARD_DATABASE_POSTGRES_PASSWORD:-change-me}
-      DATABASE_POSTGRES_DATABASE: ${DASHBOARD_DATABASE_POSTGRES_DATABASE:-sockudo}
+      DASHBOARD_DATABASE_DRIVER: ${DASHBOARD_DATABASE_DRIVER:?DASHBOARD_DATABASE_DRIVER is required}
+      DATABASE_POSTGRES_HOST: ${DASHBOARD_DATABASE_POSTGRES_HOST:?DASHBOARD_DATABASE_POSTGRES_HOST is required}
+      DATABASE_POSTGRES_PORT: ${DASHBOARD_DATABASE_POSTGRES_PORT:?DASHBOARD_DATABASE_POSTGRES_PORT is required}
+      DATABASE_POSTGRES_USERNAME: ${DASHBOARD_DATABASE_POSTGRES_USERNAME:?DASHBOARD_DATABASE_POSTGRES_USERNAME is required}
+      DATABASE_POSTGRES_PASSWORD: ${DASHBOARD_DATABASE_POSTGRES_PASSWORD:?DASHBOARD_DATABASE_POSTGRES_PASSWORD is required}
+      DATABASE_POSTGRES_DATABASE: ${DASHBOARD_DATABASE_POSTGRES_DATABASE:?DASHBOARD_DATABASE_POSTGRES_DATABASE is required}
       SOCKUDO_HTTP_URL: http://sockudo:6001
-      SOCKUDO_METRICS_URL: http://sockudo:9601
+      SOCKUDO_METRICS_URL: http://sockudo:${SOCKUDO_METRICS_PORT:?SOCKUDO_METRICS_PORT is required}
     volumes:
       - dashboard-api-data:/app/data
     depends_on:
@@ -93,7 +96,7 @@ services:
       sockudo:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3460/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${DASHBOARD_API_PORT:?DASHBOARD_API_PORT is required}/health"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -108,7 +111,7 @@ services:
     expose:
       - "80"
     environment:
-      DASHBOARD_API_UPSTREAM: ${DASHBOARD_API_UPSTREAM:-http://dashboard-api:3460}
+      DASHBOARD_API_UPSTREAM: ${DASHBOARD_API_UPSTREAM:?DASHBOARD_API_UPSTREAM is required}
     depends_on:
       dashboard-api:
         condition: service_healthy
@@ -131,7 +134,7 @@ services:
       - path: ../config/postgres/.env
         required: false
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:?POSTGRES_PORT is required}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -148,7 +151,7 @@ services:
       - path: ../config/redis/.env
         required: false
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_PORT:?REDIS_PORT is required}:6379"
     volumes:
       - ../config/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
       - redis-data:/data
