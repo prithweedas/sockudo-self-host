@@ -2,9 +2,16 @@ compose := "docker compose --env-file config/sockudo/.env --env-file config/redi
 
 up:
 	{{compose}} up -d
+	{{compose}} up -d --wait dashboard-api
+	just bootstrap-db
+
+bootstrap-db:
+	{{compose}} exec -T postgres sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < scripts/bootstrap-local-db.sql
 
 scale replicas="2":
 	{{compose}} up -d --scale sockudo={{replicas}}
+	{{compose}} up -d --scale sockudo={{replicas}} --wait dashboard-api
+	just bootstrap-db
 
 down:
 	{{compose}} down -v
