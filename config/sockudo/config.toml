@@ -26,11 +26,11 @@ enabled = true
 driver = "redis"
 
 [rate_limiter.api_rate_limit]
-max_requests = 3000
+max_requests = 50000
 window_seconds = 60
 
 [rate_limiter.websocket_rate_limit]
-max_requests = 1000
+max_requests = 5000
 window_seconds = 60
 
 [metrics]
