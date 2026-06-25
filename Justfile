@@ -19,7 +19,7 @@ up:
 
 scale replicas="2":
   {{compose}} up -d --scale sockudo={{replicas}}
-  {{compose}} up -d --wait dashboard-api
+  {{compose}} up -d --scale sockudo={{replicas}} --wait dashboard-api
   just bootstrap-dashboard-app
 
 bootstrap-dashboard-app:

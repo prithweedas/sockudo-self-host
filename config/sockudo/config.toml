@@ -37,9 +37,3 @@ window_seconds = 60
 enabled = true
 host = "0.0.0.0"
 port = 9601
-
-[metrics.tcp_exporter]
-enabled = false
-host = "127.0.0.1"
-port = 5000
-buffer_size = 1024
